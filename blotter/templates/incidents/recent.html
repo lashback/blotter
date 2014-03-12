@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+
+
+{% block title %}Recent incidents{% endblock %}
+
+
+{% block extra_css %}
+
+{% endblock %}
+
+
+
+
+
+
+{% block extra_js %}
+
+{% endblock %}
+
+
+
+
+
+{% block content %}
+
+	<h1>Some recent stuff that went down</h1><br><br>	
+	{% for i in incidents %}
+
+	
+		<h2>{{ i.datetime_occurred}}</h2>
+		<h3>{{ i.location_occurred.address }}</h3>
+		{% for c in i.crimes.all %}
+			<h2>Crime:{{c.name}} | {{c.code}}</h2>
+		{% endfor %}
+		<h2>By: {{ i.officer.name }}</h2>
+
+		{% if i.arrests.all|length > 0 %}
+			<h2>Arrests:</h2>
+			{% for a in i.arrests.all %}
+				<h3>{{a.arrestee.name}}</h3>
+				<p>{{a.arrestee.age}}</p>
+
+			{% endfor %}
+
+		{% endif %}
+	
+	<hr>
+	{% endfor %}
+
+
+{% endblock %}
+

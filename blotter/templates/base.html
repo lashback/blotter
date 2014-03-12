@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>{% block title %}{% endblock %}</title>
+	
+	{% block wrapper_meta %}{% endblock %}
+
+	{% block wrapper_css %}
+  <style>
+  body {
+    font-family: 'Montserrat', sans-serif;  }
+  </style>
+  {% endblock %}
+    
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/base.css" type="text/css" charset="utf-8"/>
+
+  <link href='http://fonts.googleapis.com/css?family=Montserrat:400,700|Merriweather:400,300,300italic,400italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    
+    
+    {% block extra_head %}{% endblock %}
+	
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

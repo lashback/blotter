@@ -1,0 +1,71 @@
+Notes on Regex:
+
+
+pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED: )(.*?)(REPORTED: )((.|\n)*?)(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?(C13-\d{5}|\Z))')
+
+This is a pretty goodun. But sometimes it returns people to include the next record up until an arrest.
+
+Why does it do that? There's a lot of breaking on whether there's people, not property. 
+
+(?=
+(\d{5}\s+)
+(
+(.|\n)*?)
+(LOCATION: )
+(
+(.|\n)*?)
+(OCCURRED: )
+(.*?)
+(REPORTED: )
+(
+(.|\n)*?)
+(OFFICER: )
+(
+(.|\n)*?)
+(SUMMARY: )
+(
+(.|\n)*?)	
+(
+(PROPERTY: )
+(
+(.|\n)*?))?
+(?(PEOPLE: )
+(
+(.|\n)*?)
+((ARRESTS: )((.|\n)*?))?
+(C13-\d{5}|\Z))
+
+The difference is mainly between 
+
+In like 194 here...
+	THERE IS NO FUCKING FUCK ASS FUCK SHIT. 
+
+
+Oh lol they weren't terminating because of the terminator. It was correct on the first, not the scond.
+
+MEANWHILE, PARSING ******PEOPLE*******
+
+Two types of people:
+Victims and offenders.
+	All of them have various traits
+	In some cases, 
+
+
+We'll start with a lookahead.
+(?=(VICTIM|OFFENDER)((.|\n)*?)(VICTIM|OFFENDER|$))
+
+That middle piece will grab all of the pertinent info about the offenders/victims.
+
+	So now, grab age, sex, location, race, height, weight, hair, eyes, vehicle, 
+
+	For location, we're going to want it if it's the case that 
+		IL is the furthest right characters.
+			But not even IL -- any state. GA?
+			So it's 
+				\s+[A-Z]{2}
+
+
+
+	Parse height:
+		508 = 5'08"
+		Is it even neccesary or can we use views to model that?
