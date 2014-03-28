@@ -29,12 +29,10 @@ class Command(BaseCommand):
 
 
 	def handle(self, *args, **options):
-	
 	#get most recent
 	#save the pdf off the wesbite:
 	#####HOW HOW DO I DO THIS?#####
 	#requests. Get. Fuck. get most recent via Beautiful Soup#
-	
 	#url = URL(pdf_url)
 	#f = open('url', 'wb')
 	#f.write(url.download(cached=False))
@@ -44,26 +42,39 @@ class Command(BaseCommand):
 	#subprocess.call
 	#or os.system. let's do that. Basically get path of that fucker, and FUCK IT UP.
 
-		#but let's work with a test case for now. 
+	#####HOWSABOUTS we send each function a list of newly-scraped files? Check to see if the directory exists, IF NOT get the file, save it, add it to a list
 
-		self.get_pdfs()
-		self.convert_to_text()
-		self.load_into_db()
+		#but let's work with a test case for now. 
+		agencies = ['Champaign', 'Urbana']
+		for a in agencies:
+			pdfs = self.get_pdfs(a)
+			texts = self.convert_to_text(a, pdfs)
+
+			self.load_into_db(a, texts)
 
 	#def get_most_recent_pdf(self):
 		#pass
 
 	
-	def get_pdfs(self):
+	def get_pdfs(self, agency):
 		champaign_base = 'http://archive.ci.champaign.il.us/cpd-reports/'
 		urbana_base = 'http://www.city.urbana.il.us/_Police_Media_Reports/'
-		uipd_base = 'http://www.dps.uiuc.edu/clery/cleryrpts.html'		
-		c = requests.get(champaign_base)
+		uipd_base = 'http://www.dps.uiuc.edu/clery/cleryrpts.html'
+
+		if agency == 'Champaign':
+			base = champaign_base 
+		else:
+			base = urbana_base
+		
+		c = requests.get(base)
 
 		if c.status_code == 200:
 			soup = bs4.BeautifulSoup(c.content)
-			links = soup.select('#listing a')
-
+			if agency == 'Champaign':
+				links = soup.select('#listing a')
+			else:
+				links = soup.select('.CellColor5 a')
+			pdf_list = []
 			print "Scrape: Evaluating %s links" % len(links)
 			#$print links
 			for link in links:
@@ -71,29 +82,46 @@ class Command(BaseCommand):
 				#Okay, so this hates me right now. Why does it hate me??
 				link_tag = link['href']
 
+				#print link_tag
 
-				print link_tag
-				file_name = link_tag.split('arms/')[1].strip()
-				print file_name
+				if agency == 'Champaign':
+					file_name = link_tag.split('arms/')[1].strip()
+				else:
+					file_name = link_tag.split('/_Police_Media_Reports/')[1].strip()
+				
+				print "Filename: " + file_name
+				
 				if not os.path.exists(working_dir):
 					os.makedirs(working_dir)
-				if not os.path.exists('%s/pdf/Champaign/' % working_dir):
-					os.makedirs('%s/pdf/Champaign/' % working_dir)
-				if not os.path.exists('%s/pdf/Champaign/%s' % (working_dir, file_name)):
-					link_url = "http://archive.ci.champaign.il.us/cpd-reports/arms/" + file_name
-					
+
+				if not os.path.exists('%s/pdf/%s/' % (working_dir, agency)):
+					os.makedirs('%s/pdf/%s/' % (working_dir, agency))
+
+
+				if not os.path.exists('%s/pdf/%s/%s' % (working_dir, agency, file_name)):
+					if agency == 'Champaign':
+						link_url = "http://archive.ci.champaign.il.us/cpd-reports/arms/" + file_name
+					else:
+						link_url = base + file_name
+
 					r = requests.get(link_url)
 					print 'Downloading %s' % file_name
 
 					if r.status_code == 200:
-						with open('%s/pdf/Champaign/%s' % (working_dir,file_name), 'wb') as writefile:
+						directory = str('%s/pdf/%s/%s' % (working_dir, agency, file_name))
+						print directory
+						with open(directory, 'wb') as writefile:
 							writefile.write(r.content)
+						pdf_list.append(directory)
 
 					else:
 						print "Failed downloading %s" % file_name
 
+
 		else:
 			print "Oh my god not again"
+		print pdf_list
+		return pdf_list
 		#os.system('wget --random-wait -nd -r -e robots=off -A.PDF -P %s %s' % (directory, champaign_base))
 		#maybe this can just be an os.system command
 		#make it a date
@@ -123,20 +151,26 @@ class Command(BaseCommand):
 		##
 
 
-	def convert_to_text(self):
-		directory = working_dir + '/pdf/Champaign'
-		pdfs_list = glob.glob(directory + '/*.PDF')
-		for pdf in pdfs_list:
+	def convert_to_text(self, agency, pdfs):
+		#directory = working_dir + '/pdf/%s' % agency
+		#pdfs_list = glob.glob(directory + '/*.PDF')
+		text_list = []
+		for pdf in pdfs:
 			print pdf 
-			os.system('pdftotext %s -layout'%pdf)
-
+			name = pdf.strip('.PDF')
+			os.system('pdftotext -layout %s '%pdf)
+			path = name + '.txt'
+			print path
+			text_list.append(path)
+		print text_list
 		print "hopefully not in here"
+		return text_list
 
 		#first check to see if it has been turned into text
 
 	
-	def load_into_db(self):
-		directory = working_dir + '/pdf/Champaign'			
+	def load_into_db(self, agency, texts):
+		directory = working_dir + '/pdf/%s' % agency			
 	#	print "i'm in it."
 		def clean(string):
 			line = re.compile('\n')
@@ -147,28 +181,17 @@ class Command(BaseCommand):
 			return string
 		
 	#	print "i'm in something"
-		text_files = glob.glob(directory + '/*.txt')
+		
 
 		#print text_files
-		for t in text_files:
+		for t in texts:
 			#print t
 			with open (t, "r") as livefile:
 				data = livefile.read()
 
 			header_pattern = re.compile('\f.*\n.*')
 			strip_headers = re.sub(header_pattern,'', data)
-		#	print strip_headers
-			#print strip_headers
-	#		print strip_headers
-			pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED:)(.*?)(REPORTED:)((.|\n)*?)(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?(C\d{2}-\d{5}|\Z))')
-			#pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(((OCCURRED: )(.*?))|((REPORTED: )((.|\n)*?)))(((OCCURRED: )(.*?))|((REPORTED: )((.|\n)*?)))(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?(C\d{2}-\d{5}|\Z))')
-			
-			#currently, when people is NOT followed by an arrest, shit goes to shit. 
-	#with properties.. (nonfunctional)
-	#(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED: )(.*?)(REPORTED: )((.|\n)*?)(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?(C13-\d{5}|\Z))
-	#no property
-	#(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED: )(.*?)(REPORTED: )((.|\n)*?)(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?(C13-\d{5}|\Z))
-			#print strip_headers
+			pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED:)(.*?)(REPORTED:)((.|\n)*?)(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?(C|U\d{2}-\d{5}|\Z))')
 			incidents = pattern.findall(strip_headers)
 			#print incidents
 
@@ -177,76 +200,39 @@ class Command(BaseCommand):
 			print 'still in'
 			for i in incidents:
 				try:
-		#			print i
 					j += 1
-				#	print ('This is the whole thing<<<<<<<<<<<<<<<<<<<<<< \n %s \n  >>>>>>>>>>>>>>that is the end' % (i,))
-			#		print j
 					code = clean(i[0].strip())
 					print code
 					description = clean(i[1].strip())
 					print description
 					location = clean(i[4].strip())
-			#		print ("location: %s" % location)
-					#print location
-					#print location
 					datetime_occurred = datetime.datetime.strptime(clean(i[7].strip()),'%m/%d/%Y %H:%M')
 					print datetime_occurred
-	
 					datetime_reported = datetime.datetime.strptime(clean(i[9].strip()), '%m/%d/%Y %H:%M')
-
-	#				print datetime_reported
 					reporting_officer = clean(i[12].strip())
-	#				print reporting_officer
 					summary = clean(i[15].strip())
-	#				print "Summary"
-					#use re to get rid of \n
-				#	print summary
-
 					properties = i[19].strip()
-			#		print properties
-					#### TEST REGION!!!
-				#	people = i[23].strip()
-				#	arrests = i[27].strip()
-				#	arrests += i[28].strip()
-					#########
-
-					
 					people = i[22].strip()
-				#	print people
-				#	print '\n\n\n\n\n'
 					arrests = i[26].strip()
 					arrests += i[27].strip()
-					#print arrests
 
-			#location is interesting because I'm eventually going to geocode these.
-			#		location_import, location_created = Location.objects.get_or_create(
-			#			address = location
-			#			)
-
-			#		officer_import, officer_created = Officer.objects.get_or_create(
-			#			name = reporting_officer
-			#			)
-
-					#arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(\w+)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
 					arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(\w+)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
 					arrests_re = arrest_pattern.findall(arrests)
-					#this is difficult to get my mind around. 
-	#				print description
+					agency_object, agency_created = Agency.objects.get_or_create(
+						name = agency
+						)
 					incident_crime, incident_created = Crime.objects.get_or_create(
-						#does description need further parsing?
 						name = description
 						)
-	#				print incident_crime
 
 					incident_location, incident_location_bool = Location.objects.get_or_create(
 						address = location
 						)
-	#				print incident_location
 					incident_officer, io_bool = Officer.objects.get_or_create(
 						name = reporting_officer
 						)
-	#				print summary
 					incident_import, incident_created = Incident.objects.get_or_create(
+						agency = agency_object,
 						code = code,
 						datetime_occurred = datetime_occurred,
 						datetime_reported = datetime_reported,			
@@ -255,16 +241,12 @@ class Command(BaseCommand):
 						summary = summary,
 						officer = incident_officer,
 						location_occurred = incident_location,
-	#					crimes = incident_crime
 						)
-		#			print incident_import
-
 					incident_import.crimes.add(incident_crime)
 					incident_import.save()
 
 
 					for a in arrests_re:
-	#					print a
 						arrestee = 	clean(a[0].strip())
 						age = 		clean(a[2].strip())
 						sex = 		clean(a[4].strip())
@@ -274,22 +256,11 @@ class Command(BaseCommand):
 						arrest_location = clean(a[13].strip())
 						arresting_officer = clean(a[15].strip())
 
-
-	#					print arrestee
-	#					print age
-	#					print sex
-	#					print address
-	#					print charge_text
-	#					print charge_code
-	#					print arrest_location
-	#					print arresting_officer
-	#					print "\n\n\n"
 						
 						crime_import, crime_bool = Crime.objects.get_or_create(
 							name = charge_text,
 							code = charge_code
 							)
-		#				print crime_import
 						address_import, address_bool = Location.objects.get_or_create(
 							address = address
 							)
@@ -322,73 +293,3 @@ class Command(BaseCommand):
 				except:
 					print ("In %s, %s didn't import! Figure it out, dude!" % (t, code ))
 		
-					#raise Exception('Re does not work here, too long')
-			
-
-
-
-
-
-
-			# (C\d{2}-\d{5}\s+)(.*?)(\s{3,})(.*?)(LOCATION: )(.*?)(\n)
-
-			#(C\d{2}-\d{5}\s+)(.*?)(\s{3,})(.*?)(LOCATION: )(.*?)(\n+)(\s+)(OCCURRED: )(.*?)(REPORTED: )(.*?)(\n+)(\s+)(OFFICER: )(.*?)(\n+)(\s+)(SUMMARY: )
-
-			#
-
-#Pe
-
-#arrests
-	#(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(\w+)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)
-
-#how do we parse people?
-#have Victim pattern. Repeat as necessary. Victim is mandatory at least once.
-
-
-#((VICTIM)\s+AGE: (.*)SEX: (M|F)(.*))|(VICTIM|OFFENDER)(.*)
-
-#Have offender hattern
-
-#TODO:
-#ARRESTS: (.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(\w+)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)
-#PEOPLE: ((VICTIM)\s+AGE: (.*)SEX: (M|F)(.*))|(VICTIM|OFFENDER)(.*)
-#PROPERTY: (DAMAGED|BURNED|STOLEN|LOST|NONE)(.*)(\d+)(.*)
-
-
-
-
-'''
-
-(?=
-0	(\d{5}\s+)
-1	(
-2		(.|\n) *?)
-3	(LOCATION: )
-4	(
-5		(.|\n) *?)
-6	(OCCURRED: )
-7	(.*?)
-8	(REPORTED: )
-9	(
-10		(.|\n)*?)
-11	(OFFICER: )
-12	(
-13		(.|\n)*?)
-14	(SUMMARY: )
-15	(
-16		(.|\n)*?)
-17	(
-18		(PROPERTY: )
-19		(
-20			(.|\n)*?) )?
-21	(PEOPLE: )
-22	(
-23		(.|\n)*?)
-24	(
-25		(ARRESTS: )
-26		(
-27			(.|\n)*?))?
-28	(C13-\d{5}|\Z))?
-
-
-'''

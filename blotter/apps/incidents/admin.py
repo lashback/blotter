@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from apps.incidents.models import *
 
 class IncidentAdmin(admin.ModelAdmin):
-	pass
+	list_display = ['code', 'agency', 'datetime_occurred']
 
 class ArrestAdmin(admin.ModelAdmin):
 	pass

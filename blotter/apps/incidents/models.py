@@ -39,6 +39,9 @@ class Property(models.Model):
 class Agency(models.Model):
 	name = models.CharField(max_length = 30)
 
+	def __unicode__(self):
+		return self.name
+
 class Officer(models.Model):
 	name = models.CharField(max_length = 70)
 	badge_number = models.IntegerField(null = True)
@@ -88,6 +91,7 @@ class Arrest(models.Model):
 
 class Incident(models.Model):
 	#native
+	agency = models.ForeignKey(Agency, null = True, blank = True)
 	code = models.CharField(max_length = 20)
 	datetime_occurred = models.DateTimeField(null = True)
 	datetime_reported = models.DateTimeField(null = True)
