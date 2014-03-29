@@ -3,14 +3,6 @@ from django.contrib.gis import geos
 from django.contrib.gis.gdal import OGRGeometry, OGRGeomType
 from django import forms
 
-class Location(models.Model):
-	name = models.CharField(max_length = 50, null = True)
-	address = models.CharField(max_length=100, null = True)
-	point_location = models.PointField('GeoDjango point field of this location', null=True, geography=True, blank = True)
-	point_verified = models.BooleanField(default = False)
-
-	def __unicode__(self):
-		return self.address
 
 
 #infraction?
@@ -41,6 +33,19 @@ class Agency(models.Model):
 
 	def __unicode__(self):
 		return self.name
+
+
+class Location(models.Model):
+	name = models.CharField(max_length = 50, null = True)
+	address = models.CharField(max_length =100, null = True)
+	point_location = models.PointField('GeoDjango point field of this location', null=True, geography=True, blank = True)
+	point_verified = models.BooleanField(default = False)
+	agency = models.ForeignKey(Agency, null = True, blank = True)
+
+	def __unicode__(self):
+		return self.address
+	def save(self, *args, **kwargs):
+		super(Location, self).save(*args, **kwargs)		
 
 class Officer(models.Model):
 	name = models.CharField(max_length = 70)

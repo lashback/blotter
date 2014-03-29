@@ -45,7 +45,8 @@ class Command(BaseCommand):
 	#####HOWSABOUTS we send each function a list of newly-scraped files? Check to see if the directory exists, IF NOT get the file, save it, add it to a list
 
 		#but let's work with a test case for now. 
-		agencies = ['Champaign', 'Urbana']
+		#agencies = ['Champaign', 'Urbana']
+		agencies = ['Urbana']
 		for a in agencies:
 			pdfs = self.get_pdfs(a)
 			texts = self.convert_to_text(a, pdfs)
@@ -205,7 +206,8 @@ class Command(BaseCommand):
 					print code
 					description = clean(i[1].strip())
 					print description
-					location = clean(i[4].strip())
+					location = i[4].strip()
+
 					datetime_occurred = datetime.datetime.strptime(clean(i[7].strip()),'%m/%d/%Y %H:%M')
 					print datetime_occurred
 					datetime_reported = datetime.datetime.strptime(clean(i[9].strip()), '%m/%d/%Y %H:%M')
@@ -216,11 +218,32 @@ class Command(BaseCommand):
 					arrests = i[26].strip()
 					arrests += i[27].strip()
 
-					arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(\w+)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
-					arrests_re = arrest_pattern.findall(arrests)
 					agency_object, agency_created = Agency.objects.get_or_create(
 						name = agency
 						)
+
+					location_pattern = re.compile('(.*)\s{5,}(.*)')
+					location_parsed = location_pattern.findall(location)
+
+					print location_parsed
+					if len(location_parsed) > 1:
+						location_address = clean(location_parsed[0])
+						location_name = clean(location_parsed[1])
+						
+						incident_location, incident_location_bool = Location.objects.get_or_create(
+						address = location_address,
+						name = location_name,
+						agency = agency_object
+						)
+					else:
+						incident_location, incident_location_bool = Location.objects.get_or_create(
+						address = location,
+						agency = agency_object
+						)
+
+					arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(\w+)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
+					arrests_re = arrest_pattern.findall(arrests)
+					
 					incident_crime, incident_created = Crime.objects.get_or_create(
 						name = description
 						)

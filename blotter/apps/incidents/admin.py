@@ -11,7 +11,7 @@ class ArrestAdmin(admin.ModelAdmin):
 	pass
 
 class LocationAdmin(admin.OSMGeoAdmin):
-	pass
+	list_display=['name', 'address', 'point_location', 'point_verified', 'agency']
 
 
 admin.site.register(Incident, IncidentAdmin)
