@@ -45,8 +45,8 @@ class Command(BaseCommand):
 	#####HOWSABOUTS we send each function a list of newly-scraped files? Check to see if the directory exists, IF NOT get the file, save it, add it to a list
 
 		#but let's work with a test case for now. 
-		#agencies = ['Champaign', 'Urbana']
-		agencies = ['Urbana']
+		agencies = ['Champaign', 'Urbana']
+		
 		for a in agencies:
 			pdfs = self.get_pdfs(a)
 			texts = self.convert_to_text(a, pdfs)
