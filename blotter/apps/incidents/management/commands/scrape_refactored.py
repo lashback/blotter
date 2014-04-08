@@ -19,32 +19,10 @@ from settings.common import SITE_ROOT
 import datetime
 
 working_dir = os.path.join(SITE_ROOT, '../data')
-#directory = os.path.join(working_dir, 'test/archive.ci.chamapign.il.us/cpd-reports/arms/')
-#list_date = []
-#today = datetime.date.today()
-#list_date.append(today)
-#directory = os.path.join(working_dir, str(list_date[0]))
-#print directory
+
 class Command(BaseCommand):
 
-
 	def handle(self, *args, **options):
-	#get most recent
-	#save the pdf off the wesbite:
-	#####HOW HOW DO I DO THIS?#####
-	#requests. Get. Fuck. get most recent via Beautiful Soup#
-	#url = URL(pdf_url)
-	#f = open('url', 'wb')
-	#f.write(url.download(cached=False))
-	#f.close()
-
-	#run a quick pdftotext script
-	#subprocess.call
-	#or os.system. let's do that. Basically get path of that fucker, and FUCK IT UP.
-
-	#####HOWSABOUTS we send each function a list of newly-scraped files? Check to see if the directory exists, IF NOT get the file, save it, add it to a list
-
-		#but let's work with a test case for now. 
 		agencies = ['Champaign', 'Urbana']
 		
 		for a in agencies:
@@ -52,10 +30,6 @@ class Command(BaseCommand):
 			texts = self.convert_to_text(a, pdfs)
 
 			self.load_into_db(a, texts)
-
-	#def get_most_recent_pdf(self):
-		#pass
-
 	
 	def get_pdfs(self, agency):
 		champaign_base = 'http://archive.ci.champaign.il.us/cpd-reports/'
@@ -80,18 +54,12 @@ class Command(BaseCommand):
 			#$print links
 			for link in links:
 				print link
-				#Okay, so this hates me right now. Why does it hate me??
 				link_tag = link['href']
-
-				#print link_tag
-
 				if agency == 'Champaign':
 					file_name = link_tag.split('arms/')[1].strip()
 				else:
 					file_name = link_tag.split('/_Police_Media_Reports/')[1].strip()
-				
 				print "Filename: " + file_name
-				
 				if not os.path.exists(working_dir):
 					os.makedirs(working_dir)
 
@@ -120,36 +88,9 @@ class Command(BaseCommand):
 
 
 		else:
-			print "Oh my god not again"
+			print "Doctor Jones Doctor Jones!"
 		print pdf_list
 		return pdf_list
-		#os.system('wget --random-wait -nd -r -e robots=off -A.PDF -P %s %s' % (directory, champaign_base))
-		#maybe this can just be an os.system command
-		#make it a date
-		# fetch the page
-		#res = urllib2.urlopen(champaign_base)
-
-		# parse the response into an xml tree
-		#tree = lxml.html.fromstring(res.read())
-
-		# construct a namespace dictionary to pass to the xpath() call
-		# this lets us use regular expressions in the xpath
-		# iterate over all <a> tags whose href ends in ".pdf" (case-insensitive)
-		#for node in tree.xpath('//a[re:test(@href, "\.PDF$", "i")]'):
-		    # print the href, joining it to the base_url
-		 #   pdf = urlparse.urljoin(base_url, node.attrib['href'])
-		  #  os.system('wget -P %s ')
-		#r = requests.get(champaign_base)
-		#pdf_soup = BeautifulSoup(r.text)
-
-		#maketoday's date 
-
-
-
-		###########################################
-		##Alternatively, I can set up a function through Soup that will grab the urls
-		##DEFINITELY need some way to see whether it's already been crawled. Could bite us in the ass. 
-		##
 
 
 	def convert_to_text(self, agency, pdfs):
@@ -163,7 +104,7 @@ class Command(BaseCommand):
 			path = name + '.txt'
 			print path
 			text_list.append(path)
-		print text_list
+		#print text_list
 		print "hopefully not in here"
 		return text_list
 
@@ -172,17 +113,13 @@ class Command(BaseCommand):
 	
 	def load_into_db(self, agency, texts):
 		directory = working_dir + '/pdf/%s' % agency			
-	#	print "i'm in it."
 		def clean(string):
 			line = re.compile('\n')
 			excess_spaces = re.compile('\s{2,}')
 			string = re.sub(line, "", string)
 			string = re.sub(excess_spaces, " ", string)
 
-			return string
-		
-	#	print "i'm in something"
-		
+			return string	
 
 		#print text_files
 		for t in texts:
@@ -192,24 +129,33 @@ class Command(BaseCommand):
 
 			header_pattern = re.compile('\f.*\n.*')
 			strip_headers = re.sub(header_pattern,'', data)
-			pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED:)(.*?)(REPORTED:)((.|\n)*?)(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?(C|U\d{2}-\d{5}|\Z))')
+
+			####There's so much that has to be done with this. 
+			#	1. Exceptions for when they mention some shit about you know shit and things.
+			#	2. The options are making everything super frustrating. Clean it up!
+
+			pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED:)(.*?)(REPORTED:)((.|\n)*?)(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?((C|U)\d{2}-\d{5}|\Z))')
+			
+			
 			incidents = pattern.findall(strip_headers)
 			#print incidents
-
+			count = len(incidents)
 			j = 0
-			#write function that eats extra whitespace characters. 
-			print 'still in'
 			for i in incidents:
 				try:
+					c = 0
+					while c < len(i):
+						print "%s: %s" % (c, clean(i[c].strip()))
+						c += 1
 					j += 1
 					code = clean(i[0].strip())
-					print code
+					#print code
 					description = clean(i[1].strip())
-					print description
+					#print description
 					location = i[4].strip()
 
 					datetime_occurred = datetime.datetime.strptime(clean(i[7].strip()),'%m/%d/%Y %H:%M')
-					print datetime_occurred
+					#print datetime_occurred
 					datetime_reported = datetime.datetime.strptime(clean(i[9].strip()), '%m/%d/%Y %H:%M')
 					reporting_officer = clean(i[12].strip())
 					summary = clean(i[15].strip())
@@ -225,7 +171,7 @@ class Command(BaseCommand):
 					location_pattern = re.compile('(.*)\s{5,}(.*)')
 					location_parsed = location_pattern.findall(location)
 
-					print location_parsed
+					#print location_parsed
 					if len(location_parsed) > 1:
 						location_address = clean(location_parsed[0])
 						location_name = clean(location_parsed[1])
@@ -240,10 +186,10 @@ class Command(BaseCommand):
 						address = location,
 						agency = agency_object
 						)
-
-					arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(\w+)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
+					print arrests
+					arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(.*)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
 					arrests_re = arrest_pattern.findall(arrests)
-					
+					print arrests_re
 					incident_crime, incident_created = Crime.objects.get_or_create(
 						name = description
 						)
@@ -268,8 +214,9 @@ class Command(BaseCommand):
 					incident_import.crimes.add(incident_crime)
 					incident_import.save()
 
-
+					total_arrests = 0
 					for a in arrests_re:
+						total_arrests += 1
 						arrestee = 	clean(a[0].strip())
 						age = 		clean(a[2].strip())
 						sex = 		clean(a[4].strip())
@@ -279,7 +226,9 @@ class Command(BaseCommand):
 						arrest_location = clean(a[13].strip())
 						arresting_officer = clean(a[15].strip())
 
-						
+						arresting_officer_import, arrest_officier_bool = Officer.objects,get_or_create(
+							name = arresting_officer
+							)
 						crime_import, crime_bool = Crime.objects.get_or_create(
 							name = charge_text,
 							code = charge_code
@@ -295,24 +244,32 @@ class Command(BaseCommand):
 							address = address_import
 							)
 						arrest_location_import, arcreated = Location.objects.get_or_create(
-							address = arrest_location
+							address = arrest_location,
+							agency = agency_object
 							)
 						arrest_import, arrest_bool = Arrest.objects.get_or_create(
 							arrestee = arrestee_import,
 							location = arrest_location_import,
-							datetime = datetime_occurred
+							datetime = datetime_occurred,
+							officer = arresting_officer_import
 
 							)
 #						print arrestee_import
 
 						arrest_import.charges.add(crime_import)
 						arrest_import.save()
-				
-					if arrests_re:
+					print "Total arrests for %s: %s" % (code, total_arrests)
+					if total_arrests > 0:
 						incident_import.arrests.add(arrest_import)
 						incident_import.save()
-					print ("%s successfully imported!" % code)
+						print "Arrests added to %s" %code
+					#print ("%s successfully imported!" % code)
 
 				except:
 					print ("In %s, %s didn't import! Figure it out, dude!" % (t, code ))
+			
+			#How well did it perform?
+			percent_imported = int(100*j/count)
+
+			print "In %s, %s percent imported" % (t, percent_imported)
 		
