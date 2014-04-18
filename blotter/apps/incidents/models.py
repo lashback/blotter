@@ -15,7 +15,6 @@ class Crime(models.Model):
 	def get_count(self):
 		return self.incident_set.count()
 
-
 	def save(self, *args, **kwargs):
 		super(Crime, self).save(*args, **kwargs)		
 
