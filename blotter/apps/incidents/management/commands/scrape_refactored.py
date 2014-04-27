@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*- 
+
+# coding=utf-8
 import re
 import csv
 import requests
@@ -18,9 +19,17 @@ from settings.common import SITE_ROOT
 
 import datetime
 
+#tasks:
+	#create list of cities and other locations
+	#Use it to identify CH, UR, Champaign, Urbana introduced in REGEX and do beter handling so that it geocodes. 
+
+
 working_dir = os.path.join(SITE_ROOT, '../data')
 
 class Command(BaseCommand):
+	#def parse_crimes(crimes):
+#			print crimes_array
+	#		return crimes
 
 	def handle(self, *args, **options):
 		agencies = ['Champaign', 'Urbana']
@@ -30,6 +39,7 @@ class Command(BaseCommand):
 			texts = self.convert_to_text(a, pdfs)
 
 			self.load_into_db(a, texts)
+	
 	
 	def get_pdfs(self, agency):
 		champaign_base = 'http://archive.ci.champaign.il.us/cpd-reports/'
@@ -110,6 +120,7 @@ class Command(BaseCommand):
 
 		#first check to see if it has been turned into text
 
+
 	
 	def load_into_db(self, agency, texts):
 		directory = working_dir + '/pdf/%s' % agency
@@ -127,7 +138,8 @@ class Command(BaseCommand):
 			#print t
 			with open (t, "r") as livefile:
 				data = livefile.read()
-
+			#occassionally unicodedecode error
+			data = data.decode('utf-8')
 			header_pattern = re.compile('\f.*\n.*')
 			strip_headers = re.sub(header_pattern,'', data)
 
@@ -135,7 +147,7 @@ class Command(BaseCommand):
 			#	1. Exceptions for when they mention some shit about you know shit and things.
 			#	2. The options are making everything super frustrating. Clean it up!
 
-			pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED:)(.*?)(REPORTED:)((.|\n)*?)(OFFICER: )((.|\n)*?)(SUMMARY: )((.|\n)*?)((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?((C|U)\d{2}-\d{5}|\Z))')
+			pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED:)(.*?)(REPORTED:)((.|\n)*?)(OFFICER: )((.|\n)*?)((SUMMARY: )((.|\n)*?))?((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?((C|U|W)\d{2}-\d{5}|\Z))')
 			
 			
 			incidents = pattern.findall(strip_headers)
@@ -144,8 +156,22 @@ class Command(BaseCommand):
 			j = 0
 			for i in incidents:
 				try:
+				#	print "Here are the things"
+					#print i
+					#j = 0
+					#while j<len(i):
+				#		
+					#	print "%s:%s" % (j, i[j])
+					#	print "Key: %s"%j
+					#	print "Length: %s" % len(i[j])
+					#	print "Contents: %s" % i[j]
+				#		
+				#		if len(i[j]) > 255:
+				#			print "YOUR REGEX DONE FUCKED"
+				#			print strip_headers
+					#	j+=1
 
-					
+
 					incident_number = clean(i[0].strip())
 					#print code
 					description = i[1].strip()
@@ -156,11 +182,11 @@ class Command(BaseCommand):
 					#print datetime_occurred
 					datetime_reported = datetime.datetime.strptime(clean(i[9].strip()), '%m/%d/%Y %H:%M')
 					reporting_officer = clean(i[12].strip())
-					summary = clean(i[15].strip())
-					properties = i[19].strip()
-					people = i[22].strip()
-					arrests = i[26].strip()
-					arrests += i[27].strip()
+					summary = clean(i[16].strip())
+					properties = i[20].strip()
+					people = i[23].strip()
+					arrests = i[27].strip()
+					arrests += i[28].strip()
 
 					agency_object, agency_created = Agency.objects.get_or_create(
 						name = agency
@@ -207,23 +233,18 @@ class Command(BaseCommand):
 						)
 
 
-					print description
-
-
+					#print description
 					crime_list = description.split('\n')
+		
 					for c in crime_list:
-						#print c
-						#print '\n'
+						print c
+						print '\n'
 
 						crime = c.strip()
 
 						crime_pattern = re.compile('(.*)\s+((CPD|UPD|\d{3}).*)')
 						crime_parsed = crime_pattern.findall(crime)
 						print crime_parsed
-				#		for b in crime_parsed:
-				#			for a in b:
-				#				print a
-
 						if len(crime_parsed) > 0 and len(crime_parsed[0]) > 1:
 							name = crime_parsed[0][0]
 							code = crime_parsed[0][1]
@@ -238,16 +259,10 @@ class Command(BaseCommand):
 							name = crime
 							print name
 							incident_crime, incident_created = Crime.objects.get_or_create(
-							name = description,
+							name = name,
 							)
-						
 						incident_import.crimes.add(incident_crime)
 						incident_import.save()
-
-
-					
-
-
 
 					if incident_import:
 						print t
@@ -270,7 +285,7 @@ class Command(BaseCommand):
 						arrest_location_parsed = location_pattern.findall(address)
 
 						
-						print address
+						#print address
 						
 						if len(address_parsed) > 1:
 							address_location = clean(location_parsed[0])
@@ -286,7 +301,7 @@ class Command(BaseCommand):
 								address = address,
 								agency = agency_object
 						)
-						print "wasn't address"
+						#print "wasn't address"
 
 						print arrest_location
 						if len(arrest_location_parsed) > 1:
@@ -303,14 +318,15 @@ class Command(BaseCommand):
 								address = arrest_location,
 								agency = agency_object
 						)
-						print "wasn't arrest location"
+					#	print "wasn't arrest location"
 #						print arrestee
 
 						arresting_officer_import, arrest_officier_bool = Officer.objects.get_or_create(
 							name = arresting_officer
 							)
 
-
+						print charge_text
+						print charge_code
 
 						crime_import, crime_bool = Crime.objects.get_or_create(
 							name = charge_text,
@@ -342,12 +358,10 @@ class Command(BaseCommand):
 						
 					#print ("%s successfully imported!" % code)
 
-				except:
-					
+				except:	
 					print ("In %s, %s didn't import! Figure it out, dude!" % (t, incident_number ))
 			
 			#How well did it perform?
 			percent_imported = int(100*j/count)
 
 			print "In %s, %s percent imported" % (t, percent_imported)
-		
