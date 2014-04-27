@@ -210,12 +210,6 @@ class Command(BaseCommand):
 						address = location,
 						agency = agency_object
 						)
-					print incident_location
-					print "not this location"
-				#	print arrests
-					arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(.*)\s+(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
-					arrests_re = arrest_pattern.findall(arrests)
-				#	print arrests_re
 					
 					incident_officer, io_bool = Officer.objects.get_or_create(
 						name = reporting_officer
@@ -225,50 +219,54 @@ class Command(BaseCommand):
 						code = incident_number,
 						datetime_occurred = datetime_occurred,
 						datetime_reported = datetime_reported,			
-						#datetime_occurred = datetime_occurred.strftime( '%Y-%m-%d %H:%M:%S'),
-						#datetime_reported = datetime_reported.strftime('%Y-%m-%d %H:%M:%S'),
 						summary = summary,
 						officer = incident_officer,
 						location_occurred = incident_location,
 						)
 
-
-					#print description
+					incident_import.raw_entry = i
+					incident_number.save()
+					
 					crime_list = description.split('\n')
-		
+					
 					for c in crime_list:
-						print c
-						print '\n'
+						
+						#print c
+						#print '\n'
 
 						crime = c.strip()
 
 						crime_pattern = re.compile('(.*)\s+((CPD|UPD|\d{3}).*)')
 						crime_parsed = crime_pattern.findall(crime)
-						print crime_parsed
+					#	print "Parsed: "
+					#	print crime_parsed
 						if len(crime_parsed) > 0 and len(crime_parsed[0]) > 1:
-							name = crime_parsed[0][0]
+							name = crime_parsed[0][0].strip()
 							code = crime_parsed[0][1]
-							print name.strip()	
-							print code.strip()
+					#		print "Name: %s" % name.strip()	
+					#		print "Code: %s" %code.strip()
 							incident_crime, incident_created = Crime.objects.get_or_create(
 								name = name,
-								code = code
 							)
-
+							incident_crime.code = code.strip()
+							incident_crime.save()
 						else:
 							name = crime
-							print name
+						#	print name
 							incident_crime, incident_created = Crime.objects.get_or_create(
 							name = name,
 							)
+
 						incident_import.crimes.add(incident_crime)
 						incident_import.save()
 
 					if incident_import:
-						print t
+				#		print t
 						j+=1
-						print "%s imported" % incident_number
+				#		print "%s imported" % incident_number
 
+					arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
+					arrests_re = arrest_pattern.findall(arrests)
 					total_arrests = 0
 					for a in arrests_re:
 						total_arrests += 1
@@ -276,10 +274,10 @@ class Command(BaseCommand):
 						age = 		clean(a[2].strip())
 						sex = 		clean(a[4].strip())
 						address = 	clean(a[6].strip())
-						charge_text=clean(a[9].strip())
-						charge_code=clean(a[10].strip())
-						arrest_location = clean(a[13].strip())
-						arresting_officer = clean(a[15].strip())			
+						charge= a[9].strip()
+						
+						arrest_location = clean(a[12].strip())
+						arresting_officer = clean(a[14].strip())			
 
 						address_parsed = location_pattern.findall(address)
 						arrest_location_parsed = location_pattern.findall(address)
@@ -303,7 +301,7 @@ class Command(BaseCommand):
 						)
 						#print "wasn't address"
 
-						print arrest_location
+					#	print arrest_location
 						if len(arrest_location_parsed) > 1:
 							arrest_location_string = clean(location_parsed[0])
 							arrest_location_name = clean(location_parsed[1])
@@ -324,13 +322,22 @@ class Command(BaseCommand):
 						arresting_officer_import, arrest_officier_bool = Officer.objects.get_or_create(
 							name = arresting_officer
 							)
-
-						print charge_text
-						print charge_code
-
-						crime_import, crime_bool = Crime.objects.get_or_create(
-							name = charge_text,
-							code = charge_code
+						print "\n\n\nTHIS IS ARRESTS:"
+						print charge
+						crime_pattern = re.compile('(.*)\s+((CPD|UPD|\d{3}).*)')
+						crime_parsed = crime_pattern.findall(charge)
+						print "Parsed: "
+						print crime_parsed
+						if len(crime_parsed) > 0 and len(crime_parsed[0]) > 1:
+							name = crime_parsed[0][0].strip()
+							code = crime_parsed[0][1]
+							print "Name: %s" % name.strip()	
+							print "Code: %s" %code.strip()
+						else:
+							name = charge.strip()
+							print name
+						crime_import, crime_imported = Crime.objects.get_or_create(
+							name = name
 							)
 
 						arrestee_import, arrestee_bool = Arrestee.objects.get_or_create(
@@ -353,15 +360,17 @@ class Command(BaseCommand):
 						arrest_import.save()
 						incident_import.arrests.add(arrest_import)
 
-						print "Arrests added to %s" %incident_number
-					print "Total arrests for %s: %s" % (incident_number, total_arrests)
+
+					#	print "Arrests added to %s" %incident_number
+					#print "Total arrests for %s: %s" % (incident_number, total_arrests)
 						
 					#print ("%s successfully imported!" % code)
 
 				except:	
-					print ("In %s, %s didn't import! Figure it out, dude!" % (t, incident_number ))
+					pass
+					#print ("In %s, %s didn't import! Figure it out, dude!" % (t, incident_number ))
 			
 			#How well did it perform?
 			percent_imported = int(100*j/count)
 
-			print "In %s, %s percent imported" % (t, percent_imported)
+			#print "In %s, %s percent imported" % (t, percent_imported)
