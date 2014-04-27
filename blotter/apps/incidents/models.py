@@ -8,12 +8,18 @@ from django import forms
 #infraction?
 class Crime(models.Model):
 	name = models.CharField(max_length = 255)
-	code = models.CharField(max_length= 255)
+	code = models.CharField(max_length= 255, blank = True)
+	arrests = models.IntegerField(default = 0)
+	#fake_field = models.CharField(null = True, blank = True)
 	total_count = models.IntegerField(default=0)
 	nat_description = models.CharField(max_length=255, null = True, blank=True)
+	
 
 	def get_count(self):
 		return self.incident_set.count()
+
+	def arrest_count(self):
+		return self.arrest_set.count()
 
 	def save(self, *args, **kwargs):
 		super(Crime, self).save(*args, **kwargs)		
@@ -110,6 +116,8 @@ class Incident(models.Model):
 	arrests = models.ManyToManyField(Arrest, null = True)
 	offenders = models.ManyToManyField(Offender, null = True)
 	properties = models.ManyToManyField(Property, null = True)
+
+	raw_entry = models.TextField(null = True)
 
 	def __unicode__(self):
 		return self.code

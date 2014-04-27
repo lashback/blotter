@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block title %}Recent arrests{% endblock %}
+
+
+{% block extra_css %}
+{% endblock %}
+
+
+{% block extra_js %}
+
+{% endblock %}
+
+
+
+
+
+{% block content %}
+	<h1>Most recent arrests</h1>
+	<br>
+	{% for i in arrests %}
+		<p>{{i}}</p>
+	<hr>
+	{% endfor %}
+
+{% endblock %}
+
