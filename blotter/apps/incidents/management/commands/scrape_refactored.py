@@ -115,7 +115,7 @@ class Command(BaseCommand):
 			print path
 			text_list.append(path)
 		#print text_list
-		print "hopefully not in here"
+		print text_list
 		return text_list
 
 		#first check to see if it has been turned into text
@@ -157,7 +157,7 @@ class Command(BaseCommand):
 			for i in incidents:
 				try:
 				#	print "Here are the things"
-					#print i
+				#	print i
 					#j = 0
 					#while j<len(i):
 				#		
@@ -225,7 +225,7 @@ class Command(BaseCommand):
 						)
 
 					incident_import.raw_entry = i
-					incident_number.save()
+					incident_import.save()
 					
 					crime_list = description.split('\n')
 					
@@ -261,9 +261,9 @@ class Command(BaseCommand):
 						incident_import.save()
 
 					if incident_import:
-				#		print t
+						
 						j+=1
-				#		print "%s imported" % incident_number
+						print "%s imported" % incident_number
 
 					arrest_pattern = re.compile('(.*)(AGE: )(\d+)\s+(SEX: )(M|F)(\s+)(.*)\n(.*)(CHARGE: )(.*)\n(.*)(AT: )(.*)(BY: )(.*)')
 					arrests_re = arrest_pattern.findall(arrests)
@@ -361,14 +361,14 @@ class Command(BaseCommand):
 						incident_import.arrests.add(arrest_import)
 
 
-					#	print "Arrests added to %s" %incident_number
-					#print "Total arrests for %s: %s" % (incident_number, total_arrests)
+						print "Arrests added to %s" %incident_number
+					print "Total arrests for %s: %s" % (incident_number, total_arrests)
 						
-					#print ("%s successfully imported!" % code)
+					print ("%s successfully imported!" % code)
 
 				except:	
-					pass
-					#print ("In %s, %s didn't import! Figure it out, dude!" % (t, incident_number ))
+					
+					print ("In %s, %s didn't import! Figure it out, dude!" % (t, incident_number ))
 			
 			#How well did it perform?
 			percent_imported = int(100*j/count)
