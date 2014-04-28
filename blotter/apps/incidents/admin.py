@@ -12,8 +12,14 @@ class ArrestAdmin(admin.ModelAdmin):
 
 class LocationAdmin(admin.OSMGeoAdmin):
 	list_display=['name', 'address', 'point_location', 'point_verified', 'agency']
+	default_lat = 4881940.078889836
+	default_lon = -9821718.67269053
+	default_zoom = 12
+	
+class CrimeAdmin(admin.ModelAdmin):
+	list_display = ['name', 'code', 'nat_description', 'total_count', 'arrests']
 
-
+admin.site.register(Crime, CrimeAdmin)
 admin.site.register(Incident, IncidentAdmin)
 admin.site.register(Arrest, ArrestAdmin)
 admin.site.register(Location, LocationAdmin)
