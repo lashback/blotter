@@ -31,6 +31,7 @@ class Command(BaseCommand):
 #			print crimes_array
 	#		return crimes
 
+
 	def handle(self, *args, **options):
 		agencies = ['Champaign', 'Urbana']
 		
@@ -131,6 +132,32 @@ class Command(BaseCommand):
 			string = re.sub(excess_spaces, " ", string)
 
 			return string	
+		#make this more complicated
+		def parse_address(string, agency):
+			location_pattern = re.compile('(.*)\s{3,}(.*)')
+			location_parsed = location_pattern.findall(string)[0]
+
+			print location_parsed
+			print len(location_parsed)
+			if len(location_parsed) > 1:
+				location_address = clean(location_parsed[0])
+				location_name = clean(location_parsed[1])
+				print "Name found"
+				print location_address
+				print location_name
+				location_import, location_imported = Location.objects.get_or_create(
+				address = location_address,
+				name = location_name,
+				agency = agency
+				)
+			else:
+				print "No name found"
+				print clean(string)
+				location_import, location_imported = Location.objects.get_or_create(
+				address = clean(string),
+				agency = agency
+				)
+			return location_import
 
 		#print text_files
 		for t in texts:
@@ -192,24 +219,7 @@ class Command(BaseCommand):
 						name = agency
 						)
 
-					location_pattern = re.compile('(.*)\s{5,}(.*)')
-					location_parsed = location_pattern.findall(location)
-
-					#print location_parsed
-					if len(location_parsed) > 1:
-						location_address = clean(location_parsed[0])
-						location_name = clean(location_parsed[1])
-						
-						incident_location, incident_location_bool = Location.objects.get_or_create(
-						address = location_address,
-						name = location_name,
-						agency = agency_object
-						)
-					else:
-						incident_location, incident_location_bool = Location.objects.get_or_create(
-						address = location,
-						agency = agency_object
-						)
+					incident_location = parse_address(location, agency_object)
 					
 					incident_officer, io_bool = Officer.objects.get_or_create(
 						name = reporting_officer
@@ -273,51 +283,18 @@ class Command(BaseCommand):
 						arrestee = 	clean(a[0].strip())
 						age = 		clean(a[2].strip())
 						sex = 		clean(a[4].strip())
-						address = 	clean(a[6].strip())
-						charge= a[9].strip()
-						
-						arrest_location = clean(a[12].strip())
+						address = 	a[6].strip()
+						charge = 	a[9].strip()
+						arrest_location_string = a[12].strip()
 						arresting_officer = clean(a[14].strip())			
 
 						address_parsed = location_pattern.findall(address)
-						arrest_location_parsed = location_pattern.findall(address)
-
+						arrest_location_parsed = location_pattern.findall(arrest_location)
+						print "Arrestee Address:"
+						arrestee_address = parse_address(address, agency_object)
+						print ""
+						arrest_location = parse_address(arrest_location_string, agency_object)
 						
-						#print address
-						
-						if len(address_parsed) > 1:
-							address_location = clean(location_parsed[0])
-							address_location_name = clean(location_parsed[1])
-						
-							address_import, address_bool = Location.objects.get_or_create(
-								address = address_location,
-								name = address_location_name,
-								agency = agency_object
-							)
-						else:
-							address_import, address_bool = Location.objects.get_or_create(
-								address = address,
-								agency = agency_object
-						)
-						#print "wasn't address"
-
-					#	print arrest_location
-						if len(arrest_location_parsed) > 1:
-							arrest_location_string = clean(location_parsed[0])
-							arrest_location_name = clean(location_parsed[1])
-						
-							arrest_location_import, arrest_location_created = Location.objects.get_or_create(
-								address = arrest_location_string,
-								name = arrest_location_name,
-								agency = agency_object
-							)
-						else:
-							arrest_location_import, arrest_location_created = Location.objects.get_or_create(
-								address = arrest_location,
-								agency = agency_object
-						)
-					#	print "wasn't arrest location"
-#						print arrestee
 
 						arresting_officer_import, arrest_officier_bool = Officer.objects.get_or_create(
 							name = arresting_officer
@@ -344,13 +321,13 @@ class Command(BaseCommand):
 							name = arrestee,
 							age = age,
 							sex = sex,
-							address = address_import
+							address = arrestee_address
 							)
 
 
 						arrest_import, arrest_bool = Arrest.objects.get_or_create(
 							arrestee = arrestee_import,
-							location = arrest_location_import,
+							location = arrest_location,
 							datetime = datetime_occurred,
 							officer = arresting_officer_import
 
@@ -367,7 +344,6 @@ class Command(BaseCommand):
 					print ("%s successfully imported!" % code)
 
 				except:	
-					
 					print ("In %s, %s didn't import! Figure it out, dude!" % (t, incident_number ))
 			
 			#How well did it perform?
