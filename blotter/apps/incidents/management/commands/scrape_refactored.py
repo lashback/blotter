@@ -127,9 +127,10 @@ class Command(BaseCommand):
 		directory = working_dir + '/pdf/%s' % agency
 		def clean(string):
 			line = re.compile('\n')
-			excess_spaces = re.compile('\s{4,}')
+			excess_spaces = re.compile('\s{2,}')
 			string = re.sub(line, "", string)
 			string = re.sub(excess_spaces, " ", string)
+			string = string.strip()
 
 			return string	
 		#make this more complicated
@@ -141,30 +142,68 @@ class Command(BaseCommand):
 			#Thing 3: Make this entire fucking smaller, jesus.
 
 			location_pattern = re.compile('(.*)\s{3,}(.*)')
-			location_regexed = location_pattern.findall(string)
+			location_regexed = location_pattern.search(string)
+			
+			city_pattern = re.compile('(.*)(\s\w+\s+IL)')
+			city_regexed = city_pattern.search(string)
+
+			intersection_checker = string.split('/')
+			
+			print "Raw"	
 			print string
+			print "Intersection Checker"
+			print intersection_checker
+			print "City Regex"
+			print city_regexed
+			print "Location Regex"
 			print location_regexed
-			if len(location_regexed) < 1:
+			
+			if len(intersection_checker)>1:
+				print clean(string)
+				location_import, location_created = Location.objects.get_or_create(
+					address = clean(string),
+					intersection_indicator = True,
+					agency = agency,
+					name = None
+					)	
+
+			#fuckfuckfuckfuck.
+			elif city_regexed:
+				location_address = clean(city_regexed.group(1).strip())
+				location_city = clean(city_regexed.group(2).strip())
+				print location_address
+				print location_city
+
+				location_import, location_imported = Location.objects.get_or_create(
+					address = location_address,
+					city = location_city,
+					name = None
+					)
+			elif location_regexed:
+				
+				
+				location_address = clean(location_regexed.group(1).strip())
+				location_name = clean(location_regexed.group(2).strip())
+				print "Name found"
+				print location_address
+				print location_name
+				location_import, location_imported = Location.objects.get_or_create(
+					address = location_address,
+					name = location_name,
+					agency = agency
+				)
+
+			else:
+
 				location = clean(string) 
 				print "No name found"
 				print location
 				location_import, location_imported = Location.objects.get_or_create(
 				address = location,
+				name = None,
 				agency = agency
 				)
-
-			else:
-				location = location_regexed[0]
-				location_address = clean(location[0])
-				location_name = clean(location[1])
-				print "Name found"
-				print location_address
-				print location_name
-				location_import, location_imported = Location.objects.get_or_create(
-				address = location_address,
-				name = location_name,
-				agency = agency
-				)
+			
 			
 			return location_import
 
@@ -182,8 +221,8 @@ class Command(BaseCommand):
 			####There's so much that has to be done with this. 
 			#	1. Exceptions for when they mention some shit about you know shit and things.
 			#	2. The options are making everything super frustrating. Clean it up!
-
-			pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED:)(.*?)(REPORTED:)((.|\n)*?)(OFFICER: )((.|\n)*?)((SUMMARY: )((.|\n)*?))?((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?((C|U|W)\d{2}-\d{5}|\Z))')
+			## oh my fucking god just add a beginning of line character before the final fucker.
+			pattern = re.compile('(?=(\d{5}\s+)((.|\n)*?)(LOCATION: )((.|\n)*?)(OCCURRED:)(.*?)(REPORTED:)((.|\n)*?)(OFFICER: )((.|\n)*?)((SUMMARY: )((.|\n)*?))?((PROPERTY: )((.|\n)*?))?(PEOPLE: )((.|\n)*?)((ARRESTS: )((.|\n)*?))?\n(((C|U|W)\d{2}-\d{5})|\Z))')
 			
 			
 			incidents = pattern.findall(strip_headers)
@@ -360,6 +399,8 @@ class Command(BaseCommand):
 					print ("In %s, %s didn't import! Figure it out, dude!" % (t, incident_number ))
 			
 			#How well did it perform?
-			percent_imported = int(100*j/count)
-
-			#print "In %s, %s percent imported" % (t, percent_imported)
+			if count > 0:
+				percent_imported = int(100*j/count)
+			else:
+				percent_imported = 0
+			print "In %s, %s percent imported" % (t, percent_imported)

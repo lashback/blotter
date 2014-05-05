@@ -46,7 +46,10 @@ class Location(models.Model):
 	point_location = models.PointField('GeoDjango point field of this location', null=True, geography=True, blank = True)
 	point_verified = models.BooleanField(default = False)
 	agency = models.ForeignKey(Agency, null = True, blank = True)
-
+	intersection_indicator = models.BooleanField(default = False)
+	block = models.BooleanField(default = False)
+	city  = models.CharField(max_length = 70, null = True, blank =  True)
+	
 	def __unicode__(self):
 		return self.address
 	def save(self, *args, **kwargs):
@@ -96,8 +99,9 @@ class Arrest(models.Model):
 	def save(self, *args, **kwargs):
 		super(Arrest, self).save(*args, **kwargs)		
 
-
-
+######
+######Need to add related incidents model and identify these cases. 
+######Need to add link to original pdf, something saved and served by us?
 
 class Incident(models.Model):
 	#native
